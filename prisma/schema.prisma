@@ -1,0 +1,88 @@
+// schema.prisma
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  clerkUserId  String        @unique
+  name         String
+  email        String        @unique
+  phone        String        @unique
+  address      String
+  carts        Cart[]
+  wallet       Wallet?
+  orders       Order[]
+  transactions Transaction[]
+}
+
+model Cart {
+  id       String          @id @default(auto()) @map("_id") @db.ObjectId
+  userId   String          @db.ObjectId
+  products ProductInCart[]
+  user     User            @relation(fields: [userId], references: [id])
+}
+
+model Wallet {
+  id          String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String        @unique @db.ObjectId
+  balance     Float         @default(0)
+  user        User          @relation(fields: [userId], references: [id])
+  Transaction Transaction[]
+}
+
+model Order {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String           @db.ObjectId
+  products    ProductInOrder[]
+  totalAmount Float
+  createdAt   DateTime         @default(now())
+  status      String // e.g., "pending", "completed", "cancelled"
+  user        User             @relation(fields: [userId], references: [id])
+}
+
+model Product {
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  name        String
+  description String
+  price       Float
+  stock       Int // Available stock quantity
+  carts       ProductInCart[]
+  orders      ProductInOrder[]
+}
+
+model Transaction {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  walletId  String   @db.ObjectId
+  amount    Float
+  createdAt DateTime @default(now())
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  User      User?    @relation(fields: [userId], references: [id])
+  userId    String?  @db.ObjectId
+  typeOfTransaction String
+}
+
+// Join table for Cart and Product
+model ProductInCart {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  cartId    String  @db.ObjectId
+  productId String  @db.ObjectId
+  quantity  Int
+  cart      Cart    @relation(fields: [cartId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
+
+// Join table for Order and Product
+model ProductInOrder {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  orderId   String  @db.ObjectId
+  productId String  @db.ObjectId
+  quantity  Int
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+}
